@@ -1,0 +1,18 @@
+auth:
+  type: LOGIN_FORM
+
+spring:
+  security:
+    user:
+      name: admin
+      password: admin
+
+kafka:
+
+  clusters:
+    - bootstrapServers: kafka-source-1:9092,kafka-source-2:9092
+      name: kafka-source
+      schemaRegistry: http://schema-registry:8081
+      kafkaConnect:
+        - name: connect
+          address: http://kafka-connect:8083

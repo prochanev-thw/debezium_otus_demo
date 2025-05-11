@@ -1,0 +1,161 @@
+version: '3.8'
+
+x-kafka-common: &kafka-common
+  image: 'bitnami/kafka:latest'
+  depends_on:
+    - zookeeper-source
+  networks:
+    - kafka_debezium
+  healthcheck:
+    test: "bash -c 'printf \"\" > /dev/tcp/127.0.0.1/9092; exit $$?;'"
+    interval: 5s
+    timeout: 10s
+    retries: 3
+    start_period: 30s
+  restart: unless-stopped
+
+x-kafka-env-source-common: &kafka-env-source-common
+  KAFKA_ZOOKEEPER_CONNECT: zookeeper-source:2181
+  ALLOW_PLAINTEXT_LISTENER: 'yes'
+  KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+services:
+
+  zookeeper-source:
+    image: confluentinc/cp-zookeeper:latest
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - kafka_debezium
+
+  kafka-source-1:
+    <<: *kafka-common
+    ports:
+      - "19092:19092"
+    volumes:
+      - kafka-source-1-data:/bitnami/kafka
+    environment:
+      <<: *kafka-env-source-common
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092, LOCAL_CONNECTION://0.0.0.0:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-source-1:9092, LOCAL_CONNECTION://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LOCAL_CONNECTION:PLAINTEXT
+
+  kafka-source-2:
+    <<: *kafka-common
+    ports:
+      - "19093:19093"
+    volumes:
+      - kafka-source-2-data:/bitnami/kafka
+    environment:
+      <<: *kafka-env-source-common
+      KAFKA_BROKER_ID: 2
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092, LOCAL_CONNECTION://0.0.0.0:19093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-source-2:9092, LOCAL_CONNECTION://localhost:19093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LOCAL_CONNECTION:PLAINTEXT
+
+  kafka-connect:
+    image: debezium/connect:2.3
+    ports:
+      - "8083:8083"
+    depends_on:
+      - kafka-source-1
+      - kafka-source-2
+    environment:
+      BOOTSTRAP_SERVERS: kafka-source-1:9092,kafka-source-2:9092
+      GROUP_ID: connect-cluster
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+    networks:
+      - kafka_debezium
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    ports:
+      - "8081:8081"
+    depends_on:
+      - kafka-source-1
+      - kafka-source-2
+    networks:
+      - kafka_debezium
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka-source-1:9092,kafka-source-2:9092"
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+    healthcheck:
+      test: "bash -c 'printf \"\" > /dev/tcp/127.0.0.1/8081; exit $$?;'"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    volumes:
+      - ./kafka-ui/config_debezium.yml:/etc/kafkaui/dynamic_config.yaml
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    depends_on:
+      kafka-source-1:
+        condition: service_healthy
+      kafka-source-2:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    networks:
+      - kafka_debezium
+    ports:
+      - '8080:8080'
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider localhost:8080 || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  postgresql:
+    image: postgres:latest
+    container_name: postgresql
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+    ports:
+      - "5432:5432"
+    networks:
+      - kafka_debezium
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d mydatabase" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: |
+      postgres 
+      -c wal_level=logical 
+      -c hot_standby=on 
+      -c max_wal_senders=10 
+      -c max_replication_slots=10 
+      -c hot_standby_feedback=on
+
+networks:
+  kafka_debezium:
+
+volumes:
+  kafka-source-1-data:
+    driver: local
+  kafka-source-2-data:
+    driver: local
+  postgres-data:
+    driver: local
