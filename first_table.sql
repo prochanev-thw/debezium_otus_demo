@@ -12,5 +12,4 @@ INSERT INTO example_table (name, age) VALUES
 ('Мария Кузнецова', 35);
 
 
-
 select * from example_table
