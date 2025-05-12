@@ -40,8 +40,8 @@ services:
     environment:
       <<: *kafka-env-source-common
       KAFKA_BROKER_ID: 1
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092, LOCAL_CONNECTION://0.0.0.0:19092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-source-1:9092, LOCAL_CONNECTION://localhost:19092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,LOCAL_CONNECTION://0.0.0.0:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-source-1:9092,LOCAL_CONNECTION://localhost:19092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LOCAL_CONNECTION:PLAINTEXT
 
   kafka-source-2:
@@ -53,8 +53,8 @@ services:
     environment:
       <<: *kafka-env-source-common
       KAFKA_BROKER_ID: 2
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092, LOCAL_CONNECTION://0.0.0.0:19093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-source-2:9092, LOCAL_CONNECTION://localhost:19093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,LOCAL_CONNECTION://0.0.0.0:19093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-source-2:9092,LOCAL_CONNECTION://localhost:19093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LOCAL_CONNECTION:PLAINTEXT
 
   kafka-connect:
@@ -62,8 +62,10 @@ services:
     ports:
       - "8083:8083"
     depends_on:
-      - kafka-source-1
-      - kafka-source-2
+      kafka-source-1:
+        condition: service_healthy
+      kafka-source-2:
+        condition: service_healthy
     environment:
       CONNECT_BOOTSTRAP_SERVERS: kafka-source-1:9092,kafka-source-2:9092
       CONNECT_GROUP_ID: connect-cluster
@@ -71,13 +73,21 @@ services:
       CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
       CONNECT_REST_PORT: 8083
 
+
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
       CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
       CONNECT_STATUS_STORAGE_TOPIC: connect-status
+
       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+
+      CONNECT_RETRIES: 10
+      CONNECT_RETRY_BACKOFF_MS: 10000
     networks:
       - kafka_debezium
 
@@ -86,8 +96,10 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      - kafka-source-1
-      - kafka-source-2
+      kafka-source-1:
+        condition: service_healthy
+      kafka-source-2:
+        condition: service_healthy
     networks:
       - kafka_debezium
     environment:
@@ -145,7 +157,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    command: |
+    command: >
       postgres 
       -c wal_level=logical 
       -c hot_standby=on 
