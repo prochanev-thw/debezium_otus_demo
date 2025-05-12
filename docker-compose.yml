@@ -58,18 +58,22 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LOCAL_CONNECTION:PLAINTEXT
 
   kafka-connect:
-    image: debezium/connect:2.3
+    image: confluentinc/cp-kafka-connect:latest
     ports:
       - "8083:8083"
     depends_on:
       - kafka-source-1
       - kafka-source-2
     environment:
-      BOOTSTRAP_SERVERS: kafka-source-1:9092,kafka-source-2:9092
-      GROUP_ID: connect-cluster
-      CONFIG_STORAGE_TOPIC: connect-configs
-      OFFSET_STORAGE_TOPIC: connect-offsets
-      STATUS_STORAGE_TOPIC: connect-status
+      CONNECT_BOOTSTRAP_SERVERS: kafka-source-1:9092,kafka-source-2:9092
+      CONNECT_GROUP_ID: connect-cluster
+
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_REST_PORT: 8083
+
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-status
       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
