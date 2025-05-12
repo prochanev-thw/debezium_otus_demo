@@ -82,6 +82,7 @@ services:
       CONNECT_STATUS_STORAGE_TOPIC: connect-status
 
       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
 
       CONNECT_RETRIES: 10
       CONNECT_RETRY_BACKOFF_MS: 10000
