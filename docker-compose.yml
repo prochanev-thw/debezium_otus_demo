@@ -58,7 +58,9 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LOCAL_CONNECTION:PLAINTEXT
 
   kafka-connect:
-    image: confluentinc/cp-kafka-connect:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.kafka-connect
     ports:
       - "8083:8083"
     depends_on:
