@@ -58,9 +58,7 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LOCAL_CONNECTION:PLAINTEXT
 
   kafka-connect:
-    build:
-      context: .
-      dockerfile: Dockerfile.kafka-connect
+    image: confluentinc/cp-server-connect:latest
     ports:
       - "8083:8083"
     depends_on:
@@ -90,6 +88,14 @@ services:
 
       CONNECT_RETRIES: 10
       CONNECT_RETRY_BACKOFF_MS: 10000
+    command:
+      - bash
+      - -c
+      - |
+        echo "Installing connector plugins"
+        confluent-hub install --no-prompt debezium/debezium-connector-postgresql:latest
+        echo "Launching Kafka Connect worker"
+        /etc/confluent/docker/run
     networks:
       - kafka_debezium
 

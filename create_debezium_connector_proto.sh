@@ -18,6 +18,11 @@ curl -X POST http://localhost:8083/connectors \
       "snapshot.mode": "never",
 
       "value.converter": "io.confluent.connect.protobuf.ProtobufConverter",
-      "value.converter.schema.registry.url": "http://localhost:8081"
+      "value.converter.schema.registry.url": "http://localhost:8081",
+
+      "transforms": "route",
+      "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+      "transforms.route.regex": "(.*)",
+      "transforms.route.replacement": "$1_proto"
     }
   }'
