@@ -15,6 +15,8 @@ curl -X POST http://localhost:8083/connectors \
       "slot.name": "debezium_slot",
       "topic.prefix": "dbzm__",
       "publication.name": "debezium_pub",
-      "snapshot.mode": "never"
+      "snapshot.mode": "never",
+      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "value.converter": "org.apache.kafka.connect.json.JsonConverter"
     }
   }'
