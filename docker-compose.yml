@@ -61,6 +61,7 @@ services:
     image: confluentinc/cp-server-connect:latest
     ports:
       - "8083:8083"
+      - "9100:9100"
     depends_on:
       kafka-source-1:
         condition: service_healthy
@@ -86,6 +87,9 @@ services:
 
       CONNECT_RETRIES: 10
       CONNECT_RETRY_BACKOFF_MS: 10000
+
+      JMX_PORT: 9100
+      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka-connect -Dcom.sun.management.jmxremote.port=9100 -Dcom.sun.management.jmxremote.rmi.port=9100"
     command:
       - bash
       - -c
