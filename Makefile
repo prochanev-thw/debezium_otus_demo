@@ -5,5 +5,5 @@ restart_kafka_connect_debezium:
 	docker-compose -f docker-compose.yml up -d
 
 
-stop_kafka_connect_debezium:
-	docker-compose restart kafka-connect
+restart_kafka_connect_debezium:
+	docker compose up -d --build kafka-connect

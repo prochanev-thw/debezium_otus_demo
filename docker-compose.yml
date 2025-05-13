@@ -72,7 +72,7 @@ services:
         condition: service_healthy
     environment:
 
-      EXTRA_JAVA_OPTS: "-javaagent:/opt/jmx_exporter.jar=9404:/etc/jmx_exporter_config.yml"
+      CONNECT_JAVA_OPTS: "-javaagent:/opt/jmx_exporter.jar=9404:/etc/jmx_exporter_config.yml"
 
       CONNECT_BOOTSTRAP_SERVERS: kafka-source-1:9092,kafka-source-2:9092
       CONNECT_GROUP_ID: connect-cluster
@@ -100,7 +100,8 @@ services:
       - |
         echo "Installing connector plugins"
         confluent-hub install --no-prompt debezium/debezium-connector-postgresql:latest
-        echo "Launching Kafka Connect worker"
+        echo "Launching Kafka Connect with JMX Exporter agent"
+        export KAFKA_OPTS="$KAFKA_OPTS -javaagent:/opt/jmx_exporter.jar=9404:/etc/jmx_exporter_config.yml"
         /etc/confluent/docker/run
     networks:
       - kafka_debezium
