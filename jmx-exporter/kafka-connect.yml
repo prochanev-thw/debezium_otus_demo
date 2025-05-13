@@ -1,0 +1,9 @@
+startDelaySeconds: 0
+hostPort: 127.0.0.1:9100
+jmxUrl: ""
+username: ""
+password: ""
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+  - pattern: '.*'
